@@ -1,0 +1,368 @@
+# Kafka to StarRocks Field Mapping for casb_file
+#
+# Kafka Message Structure:
+#   - Top-level CDC fields (__ts_ms, __deleted, __op, id, created_at, modified, updated)
+#   - inventory_fields: JSON string with app metadata
+#   - unified_data: JSON string with file details
+#
+# Notes:
+#   - inventory_fields and unified_data are JSON-encoded strings that need parsing
+#   - Timestamps need format conversion (ISO8601 -> DATETIME)
+#   - __ts_ms is Unix epoch milliseconds
+#   - __deleted is string "true"/"false" -> TINYINT 0/1
+
+source:
+  type: kafka
+  format: json
+  topic: file_phx
+
+target:
+  type: starrocks
+  table: casb_file
+  database: udspm_v1
+
+# Field mappings
+# Format: target_column: source_path (with transformation notes)
+mappings:
+
+  # ============================================================================
+  # PRIMARY KEY COLUMNS (Required for UPSERT)
+  # ============================================================================
+  ns_tenant_id:
+    source: "inventory_fields.ns_tenant_id"
+    type: INT
+    required: true
+    transform: "parse_json(inventory_fields).ns_tenant_id"
+
+  instance:
+    source: "inventory_fields.app_instance"
+    type: VARCHAR(255)
+    required: true
+    transform: "parse_json(inventory_fields).app_instance"
+
+  app:
+    source: "inventory_fields.app_name"
+    type: VARCHAR(255)
+    required: true
+    transform: "parse_json(inventory_fields).app_name"
+
+  id:
+    source: "unified_data.id"
+    type: STRING
+    required: true
+    transform: "parse_json(unified_data).id"
+
+  # ============================================================================
+  # TIMESTAMPS
+  # ============================================================================
+  ns_insertion_epoch_timestamp:
+    source: "__ts_ms"
+    type: DATETIME
+    transform: "from_unixtime(__ts_ms / 1000)"
+    notes: "Kafka CDC timestamp in milliseconds"
+
+  created:
+    source: "unified_data.created"
+    type: DATETIME
+    transform: "parse_json(unified_data).created -> parse_datetime"
+    format: "ISO8601 (2022-07-08T19:50:11Z)"
+
+  timestamp:
+    source: "modified"
+    type: DATETIME
+    transform: "parse_datetime(modified)"
+    format: "ISO8601"
+
+  last_scanned:
+    source: "unified_data.exposureData.updatedAt"
+    type: DATETIME
+    transform: "parse_json(unified_data).exposureData.updatedAt -> parse_datetime"
+    nullable: true
+
+  ns_updated:
+    source: "updated"
+    type: DATETIME
+    transform: "parse_datetime(updated)"
+
+  ns_cdc_timestamp:
+    source: "__ts_ms"
+    type: DATETIME
+    transform: "from_unixtime(__ts_ms / 1000)"
+
+  # ============================================================================
+  # APPLICATION METADATA
+  # ============================================================================
+  appcategory:
+    source: "inventory_fields.app_category"
+    type: VARCHAR(255)
+    transform: "parse_json(inventory_fields).app_category"
+
+  appsuite:
+    source: "inventory_fields.app_suite"
+    type: VARCHAR(255)
+    transform: "parse_json(inventory_fields).app_suite"
+
+  # ============================================================================
+  # CLASSIFICATION FIELDS (not present in sample - nullable)
+  # ============================================================================
+  classification_label:
+    source: "unified_data.classificationLabel"
+    type: STRING
+    nullable: true
+    default: null
+
+  classification_labels:
+    source: "unified_data.classificationLabels"
+    type: STRING
+    nullable: true
+    default: null
+
+  classification_object_labels:
+    source: "unified_data.classificationObjectLabels"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  classification_object_value_ids:
+    source: "unified_data.classificationObjectValueIds"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  classification_object_value_texts:
+    source: "unified_data.classificationObjectValueTexts"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  classification_object_vendor_apps:
+    source: "unified_data.classificationObjectVendorApps"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  classification_object_vendor_instances:
+    source: "unified_data.classificationObjectVendorInstances"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  classification_vendor:
+    source: "unified_data.classificationVendor"
+    type: STRING
+    nullable: true
+    default: null
+
+  # ============================================================================
+  # FILE METADATA
+  # ============================================================================
+  content_hash:
+    source: "unified_data.contentHash"
+    type: STRING
+    transform: "parse_json(unified_data).contentHash"
+
+  mime_type:
+    source: "unified_data.mimeType"
+    type: VARCHAR(255)
+    transform: "parse_json(unified_data).mimeType"
+
+  parent_id:
+    source: "unified_data.parentId"
+    type: STRING
+    transform: "parse_json(unified_data).parentId"
+
+  parent_type:
+    source: "unified_data.parentType"
+    type: VARCHAR(255)
+    transform: "parse_json(unified_data).parentType"
+
+  url:
+    source: "unified_data.url"
+    type: STRING
+    transform: "parse_json(unified_data).url"
+
+  path:
+    source: "unified_data.path"
+    type: STRING
+    transform: "parse_json(unified_data).path"
+
+  name:
+    source: "unified_data.name"
+    type: STRING
+    transform: "parse_json(unified_data).name"
+
+  size:
+    source: "unified_data.size"
+    type: BIGINT
+    transform: "parse_json(unified_data).size -> parse_int"
+    notes: "Source is string, needs conversion to integer"
+
+  geo:
+    source: "unified_data.geo"
+    type: STRING
+    nullable: true
+    default: null
+
+  exposure:
+    source: "unified_data.exposureData.rawExposure"
+    type: VARCHAR(255)
+    nullable: true
+    transform: "parse_json(unified_data).exposureData.rawExposure -> base64_decode -> gzip_decompress -> parse_json"
+    notes: "Exposure is base64-encoded gzipped JSON, needs decoding or store raw"
+
+  media_type_category:
+    source: "unified_data.mediaTypeCategory"
+    type: STRING
+    nullable: true
+    default: null
+
+  # ============================================================================
+  # OWNER INFORMATION
+  # ============================================================================
+  owner_id:
+    source: "unified_data.owner.id"
+    type: STRING
+    transform: "parse_json(unified_data).owner.id"
+
+  owner_email:
+    source: "unified_data.owner.email"
+    type: STRING
+    transform: "parse_json(unified_data).owner.email"
+
+  owner_display_name:
+    source: "unified_data.owner.displayName"
+    type: STRING
+    transform: "parse_json(unified_data).owner.displayName"
+
+  last_modifier_id:
+    source: "unified_data.lastModifier.id"
+    type: STRING
+    transform: "parse_json(unified_data).lastModifier.id"
+
+  last_modifier_email:
+    source: "unified_data.lastModifier.email"
+    type: STRING
+    transform: "parse_json(unified_data).lastModifier.email"
+
+  # ============================================================================
+  # CONTENT CLASSIFICATION / DLP (not present in sample - nullable)
+  # ============================================================================
+  content_classification_dlp_rule:
+    source: "unified_data.contentClassification.dlpRule"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  content_classification_dlp_hitCount:
+    source: "unified_data.contentClassification.dlpHitCount"
+    type: "ARRAY<BIGINT>"
+    nullable: true
+    default: "[]"
+
+  content_classification_dlp_severity:
+    source: "unified_data.contentClassification.dlpSeverity"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  content_classification_dlp_profiles:
+    source: "unified_data.contentClassification.dlpProfiles"
+    type: JSON
+    nullable: true
+    default: "null"
+
+  content_classification_entity_data_types:
+    source: "unified_data.contentClassification.entityDataTypes"
+    type: JSON
+    nullable: true
+    default: "null"
+
+  content_classification_entity_sensitivity_levels:
+    source: "unified_data.contentClassification.entitySensitivityLevels"
+    type: JSON
+    nullable: true
+    default: "null"
+
+  content_classification_entity_counts:
+    source: "unified_data.contentClassification.entityCounts"
+    type: JSON
+    nullable: true
+    default: "null"
+
+  content_classification_status:
+    source: "unified_data.contentClassification.status"
+    type: STRING
+    nullable: true
+    default: null
+
+  content_classification_hash:
+    source: "unified_data.metadataHash"
+    type: STRING
+    transform: "parse_json(unified_data).metadataHash"
+
+  # ============================================================================
+  # FILE HIERARCHY
+  # ============================================================================
+  file_root_id:
+    source: "unified_data.root.id"
+    type: STRING
+    transform: "parse_json(unified_data).root.id"
+
+  file_root_type:
+    source: "unified_data.root.type"
+    type: STRING
+    transform: "parse_json(unified_data).root.type"
+
+  access_inheritance_type:
+    source: "unified_data.accessInheritanceType"
+    type: STRING
+    transform: "parse_json(unified_data).accessInheritanceType"
+
+  legacy_id:
+    source: "unified_data.ids[1]"
+    type: STRING
+    transform: "parse_json(unified_data).ids[1]"
+    notes: "Second ID in ids array is legacy ID"
+    nullable: true
+
+  access_sources_id:
+    source: "unified_data.accessSourcesId"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  access_sources_type:
+    source: "unified_data.accessSourcesType"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  # ============================================================================
+  # EXEMPTIONS (not present in sample - nullable)
+  # ============================================================================
+  exemption_policies:
+    source: "unified_data.exemptionPolicies"
+    type: "ARRAY<STRING>"
+    nullable: true
+    default: "[]"
+
+  exemption_end:
+    source: "unified_data.exemptionEnd"
+    type: DATETIME
+    nullable: true
+    default: null
+
+  # ============================================================================
+  # INTERNAL FIELDS
+  # ============================================================================
+  ns_deleted:
+    source: "__deleted"
+    type: TINYINT
+    transform: "__deleted == 'true' ? 1 : 0"
+    notes: "Convert string 'true'/'false' to 1/0"
+
+  ns_meta:
+    source: null
+    type: SMALLINT
+    default: 0
+    notes: "Internal metadata flags, default to 0"
