@@ -1,6 +1,6 @@
 module kafka-starrocks-loader
 
-go 1.25.5
+go 1.23
 
 require github.com/segmentio/kafka-go v0.4.50
 
