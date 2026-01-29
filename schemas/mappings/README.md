@@ -98,9 +98,9 @@ This directory contains field mapping configurations and transformer code for in
 
   "creator": {
     "id": "JITmMZfQDr33u61u16Zmjg==",
-    "username": "Diego.Torregrosa@comafi.com.ar",
-    "displayName": "Torregrosa, Diego",
-    "email": "Diego.Torregrosa@comafi.com.ar"
+    "username": "user@example.com",
+    "displayName": "User, Example",
+    "email": "user@example.com"
   },
   "owner": { ... },
   "lastModifier": { ... },
