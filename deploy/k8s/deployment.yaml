@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-starrocks-loader
+  namespace: data-pipeline
+  labels:
+    app: kafka-starrocks-loader
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kafka-starrocks-loader
+  template:
+    metadata:
+      labels:
+        app: kafka-starrocks-loader
+      annotations:
+        # Force pod restart when ConfigMap changes (optional)
+        # Uncomment if you want immediate reload instead of waiting for refresh interval
+        # checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+    spec:
+      containers:
+      - name: loader
+        image: your-registry/kafka-starrocks-loader:latest
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        # Kafka settings
+        - name: KAFKA_BROKERS
+          value: "kafka.kafka.svc.cluster.local:9092"
+        - name: KAFKA_TOPIC
+          value: "file_phx"
+        - name: KAFKA_GROUP_ID
+          value: "starrocks-loader"
+
+        # StarRocks settings
+        - name: STARROCKS_HOST
+          value: "starrocks-fe.starrocks.svc.cluster.local"
+        - name: STARROCKS_PORT
+          value: "8030"
+        - name: STARROCKS_DB
+          value: "udspm_v1"
+        - name: STARROCKS_TABLE
+          value: "casb_file"
+        - name: STARROCKS_USER
+          valueFrom:
+            secretKeyRef:
+              name: starrocks-credentials
+              key: username
+        - name: STARROCKS_PASS
+          valueFrom:
+            secretKeyRef:
+              name: starrocks-credentials
+              key: password
+
+        # Tenant filter settings
+        - name: TENANT_FILTER_ENABLED
+          value: "true"
+        - name: TENANT_WHITELIST_PATH
+          value: "/etc/config/tenant-whitelist.txt"
+        - name: TENANT_REFRESH_INTERVAL
+          value: "2m"
+
+        # Processing settings
+        - name: BATCH_SIZE
+          value: "5000"
+        - name: FLUSH_INTERVAL_MS
+          value: "1000"
+
+        volumeMounts:
+        # Mount tenant whitelist ConfigMap
+        - name: tenant-whitelist
+          mountPath: /etc/config
+          readOnly: true
+
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      volumes:
+      # Tenant whitelist from ConfigMap
+      - name: tenant-whitelist
+        configMap:
+          name: tenant-whitelist
+          items:
+          - key: tenant-whitelist.txt
+            path: tenant-whitelist.txt
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-starrocks-loader
+  namespace: data-pipeline
+spec:
+  selector:
+    app: kafka-starrocks-loader
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http

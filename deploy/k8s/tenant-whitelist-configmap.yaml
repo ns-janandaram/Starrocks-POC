@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-whitelist
+  namespace: data-pipeline
+  labels:
+    app: kafka-starrocks-loader
+data:
+  # Tenant whitelist file
+  # One tenant ID per line
+  # Lines starting with # are comments
+  # Update this ConfigMap to add/remove tenants
+  # The consumer will pick up changes within 2 minutes
+  tenant-whitelist.txt: |
+    # Allowed tenant IDs
+    # Add one tenant ID per line
+    # Example:
+    # 18988
+    # 12345
+    # 67890
+
+---
+# Alternative: ConfigMap with explicit tenant list
+# Useful if you want to manage tenants as a YAML list
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-config
+  namespace: data-pipeline
+  labels:
+    app: kafka-starrocks-loader
+data:
+  # JSON format for programmatic access
+  tenants.json: |
+    {
+      "enabled": true,
+      "refresh_interval_seconds": 120,
+      "allowed_tenants": [
+        18988,
+        12345,
+        67890
+      ]
+    }
