@@ -1,0 +1,101 @@
+Category,Sub-Criteria,Weight,Priority,StarRocks Score (1-5),ClickHouse Score (1-5),StarRocks Weighted,ClickHouse Weighted,Notes
+,,,,,,,,
+=== MUTABLE DATA & MULTI-TABLE JOINS ===,,3x,Must Have,,,,,"Support for UPDATE/DELETE with 4-6 table joins"
+Mutable Data,UPDATE/DELETE Performance,30%,Must Have,5,2,1.5,0.6,"SR: Native Primary Key tables; CH: Async mutations via merge"
+Mutable Data,Mutation Consistency,20%,Must Have,5,2,1.0,0.4,"SR: Immediate visibility; CH: Eventual (requires FINAL)"
+Mutable Data,Join Optimizer Quality,25%,Must Have,4,3,1.0,0.75,"SR: Cascades-style CBO; CH: Rule-based"
+Mutable Data,Join Performance (4-6 tables),25%,Must Have,4,3,1.0,0.75,"SR: Multiple join strategies; CH: Prefers denormalization"
+Mutable Data - Subtotal,,,Must Have,4.5,2.5,13.5,7.5,
+,,,,,,,,
+=== ICEBERG FEDERATION ===,,3x,Must Have,,,,,"Join native + Iceberg data"
+Iceberg Federation,Catalog Support (Glue/Hive/REST),25%,Must Have,5,2,1.25,0.5,"SR: Native multi-catalog; CH: Table functions only"
+Iceberg Federation,Query Performance,30%,Must Have,5,2,1.5,0.6,"SR: CBO uses Iceberg stats; CH: Limited optimization"
+Iceberg Federation,Predicate Pushdown,20%,Must Have,5,3,1.0,0.6,"SR: Full pushdown; CH: Partial"
+Iceberg Federation,Metadata Integration,15%,Must Have,5,2,0.75,0.3,"SR: Schema sync + time travel; CH: Manual refresh"
+Iceberg Federation,Operational Simplicity,10%,Must Have,5,2,0.5,0.2,"SR: Catalog abstraction; CH: Per-table setup"
+Iceberg Federation - Subtotal,,,Must Have,5.0,2.0,15.0,6.0,
+,,,,,,,,
+=== MATERIALIZED VIEWS ===,,3x,Must Have,,,,,"MV with automatic query rewrite"
+Materialized Views,Automatic Query Rewrite,40%,Must Have,5,0,2.0,0.0,"SR: Transparent rewrite; CH: Not supported (critical gap)"
+Materialized Views,Incremental Refresh,25%,Must Have,5,4,1.25,1.0,"SR: Partition-aware; CH: Insert-only refresh"
+Materialized Views,MV on External Tables,15%,Must Have,5,0,0.75,0.0,"SR: Supported on Iceberg; CH: Not supported"
+Materialized Views,Refresh Strategies,10%,Must Have,5,3,0.5,0.3,"SR: Async/manual/scheduled; CH: Insert-triggered only"
+Materialized Views,MV Management & Monitoring,10%,Must Have,5,4,0.5,0.4,"SR: Built-in history; CH: system.mutations"
+Materialized Views - Subtotal,,,Must Have,5.0,2.0,15.0,6.0,
+,,,,,,,,
+=== LOOKER INTEGRATION ===,,3x,Must Have,,,,,"BI connectivity and SQL compatibility"
+Looker Integration,SQL Dialect Compatibility,35%,Must Have,4,4,1.4,1.4,"Both: Good Looker support; SR uses MySQL dialect"
+Looker Integration,Connection Reliability,25%,Must Have,5,4,1.25,1.0,"Both: Stable JDBC/ODBC"
+Looker Integration,Query Performance,25%,Must Have,5,4,1.25,1.0,"SR: Better for complex joins; CH: Good for simple queries"
+Looker Integration,Setup Complexity,15%,Must Have,4,4,0.6,0.6,"Both: Straightforward setup"
+Looker Integration - Subtotal,,,Must Have,4.5,4.0,13.5,12.0,
+,,,,,,,,
+=== ELASTIC SCALING ===,,2.5x,Must Have (R) / Nice-to-Have (W),,,,,"Scale reads during business hours"
+Elastic Scaling,Read Scaling Speed,30%,Must Have,5,3,1.5,0.9,"SR: Minutes (stateless CN); CH: 5-15 min (Cloud)"
+Elastic Scaling,Read Scaling Granularity,20%,Must Have,5,4,1.0,0.8,"SR: Individual nodes; CH: Replica level"
+Elastic Scaling,Write Scaling Capability,20%,Nice-to-Have,4,3,0.8,0.6,"SR: CN handles both; CH: Shard rebalancing needed"
+Elastic Scaling,Auto-scaling Support,15%,Nice-to-Have,4,4,0.6,0.6,"Both: K8s/Cloud auto-scaling available"
+Elastic Scaling,Cost Efficiency,15%,Important,4,3,0.6,0.45,"SR: Pay for compute only; CH: Storage per node"
+Elastic Scaling - Subtotal,,,Mixed,4.5,3.5,11.25,8.75,
+,,,,,,,,
+=== COST & MAINTENANCE ===,,2x,Important,,,,,"TCO and operational overhead"
+Cost & Maintenance,License Cost,20%,Important,5,5,1.0,1.0,"Both: Apache 2.0 (free)"
+Cost & Maintenance,Compute Efficiency,25%,Important,4,4,1.0,1.0,"Both: Efficient columnar processing"
+Cost & Maintenance,Storage Efficiency,20%,Important,4,4,0.8,0.8,"Both: Good compression; SR has tiered storage edge"
+Cost & Maintenance,Operational Overhead,20%,Important,4,3,0.8,0.6,"SR: Simpler shared-data; CH: Keeper + shards"
+Cost & Maintenance,Managed Service Options,15%,Important,4,4,0.6,0.6,"SR: CelerData; CH: ClickHouse Cloud"
+Cost & Maintenance - Subtotal,,,Important,4.0,3.5,8.0,7.0,
+,,,,,,,,
+=== SQL SUPPORT & EXTENSIBILITY ===,,2x,Important,,,,,"Standard SQL and customization"
+SQL Support,ANSI SQL Compliance,35%,Important,5,4,1.75,1.4,"SR: High (MySQL compat); CH: Moderate (proprietary syntax)"
+SQL Support,Window Functions,20%,Important,5,5,1.0,1.0,"Both: Full support"
+SQL Support,UDF Support,20%,Important,4,4,0.8,0.8,"SR: Java UDFs; CH: C++/JS/SQL UDFs"
+SQL Support,Query Features (CTEs/Subqueries),15%,Important,4,4,0.6,0.6,"Both: Good CTE support"
+SQL Support,Migration Ease,10%,Important,4,3,0.4,0.3,"SR: Less query rewriting needed"
+SQL Support - Subtotal,,,Important,4.5,4.0,9.0,8.0,
+,,,,,,,,
+=== ICEBERG SINK ===,,1x,Nice-to-Have,,,,,"Write data to Iceberg format"
+Iceberg Sink,INSERT INTO Iceberg,40%,Nice-to-Have,5,0,2.0,0.0,"SR: Fully supported; CH: Not available"
+Iceberg Sink,CTAS to Iceberg,30%,Nice-to-Have,5,0,1.5,0.0,"SR: CREATE TABLE AS SELECT; CH: Not available"
+Iceberg Sink,Table Management,30%,Nice-to-Have,5,0,1.5,0.0,"SR: CREATE/ALTER/DROP; CH: Read-only"
+Iceberg Sink - Subtotal,,,Nice-to-Have,5.0,1.0,5.0,1.0,
+,,,,,,,,
+=== COMMUNITY & ECOSYSTEM ===,,1x,Nice-to-Have,,,,,"Support and ecosystem maturity"
+Community,Community Size (GitHub Stars),25%,Nice-to-Have,3,5,0.75,1.25,"SR: ~9K; CH: ~38K"
+Community,Documentation Quality,25%,Nice-to-Have,4,5,1.0,1.25,"Both good; CH more extensive"
+Community,Release Cadence,20%,Nice-to-Have,4,4,0.8,0.8,"Both: Monthly releases"
+Community,Commercial Support,15%,Nice-to-Have,4,5,0.6,0.75,"SR: CelerData; CH: ClickHouse Inc + Altinity"
+Community,Ecosystem Integrations,15%,Nice-to-Have,3,4,0.45,0.6,"CH: Larger ecosystem"
+Community - Subtotal,,,Nice-to-Have,3.5,4.5,3.5,4.5,
+,,,,,,,,
+=== FINAL SUMMARY ===,,,,,,,,
+,,,,,,,,
+CATEGORY SUMMARY,Weight,Priority,StarRocks Raw,ClickHouse Raw,StarRocks Weighted,ClickHouse Weighted,Winner,Gap
+Mutable Data & Joins,3x,Must Have,4.5,2.5,13.5,7.5,StarRocks,+6.0
+Iceberg Federation,3x,Must Have,5.0,2.0,15.0,6.0,StarRocks,+9.0
+Materialized Views,3x,Must Have,5.0,2.0,15.0,6.0,StarRocks,+9.0
+Looker Integration,3x,Must Have,4.5,4.0,13.5,12.0,StarRocks,+1.5
+Elastic Scaling,2.5x,Mixed,4.5,3.5,11.25,8.75,StarRocks,+2.5
+Cost & Maintenance,2x,Important,4.0,3.5,8.0,7.0,StarRocks,+1.0
+SQL Extensibility,2x,Important,4.5,4.0,9.0,8.0,StarRocks,+1.0
+Iceberg Sink,1x,Nice-to-Have,5.0,1.0,5.0,1.0,StarRocks,+4.0
+Community,1x,Nice-to-Have,3.5,4.5,3.5,4.5,ClickHouse,-1.0
+,,,,,,,,
+GRAND TOTAL,,,"Raw Avg: 4.50","Raw Avg: 3.00",93.75,60.75,StarRocks,+33.0
+WEIGHTED AVERAGE,,,,,4.57,2.96,StarRocks,+1.61
+,,,,,,,,
+=== DECISION MATRIX ===,,,,,,,,
+Requirement,StarRocks Capability,ClickHouse Capability,Verdict,,,,,
+Mutable data with immediate consistency,Primary Key model - sub-second visibility,Async merge - eventual consistency,StarRocks,,,,,
+Multi-table joins (4-6 tables),CBO optimizer with runtime filters,Rule-based optimizer - prefers denorm,StarRocks,,,,,
+Iceberg catalog federation,Native multi-catalog support,Table functions only (experimental),StarRocks,,,,,
+MV automatic query rewrite,Fully supported - transparent rewrite,Not supported - must query MV directly,StarRocks (critical),,,,,
+Elastic read scaling,Stateless CN - minutes to scale,SharedMergeTree Cloud only - longer,StarRocks,,,,,
+Write to Iceberg,INSERT INTO / CTAS supported,Not supported,StarRocks,,,,,
+Community maturity,Growing (9K stars),Mature (38K stars),ClickHouse,,,,,
+,,,,,,,,
+=== RECOMMENDATION ===,,,,,,,,
+Primary Recommendation:,StarRocks,,,,,,,
+Weighted Score Advantage:,+33.0 points (93.75 vs 60.75),,,,,,,
+Key Differentiators:,"MV Query Rewrite, Iceberg Federation, Mutable Data",,,,,,,
+Risk Factors:,Smaller community - mitigated by CelerData support,,,,,,,
